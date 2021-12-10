@@ -8,13 +8,9 @@ class ChunkLine
   attr_accessor :corrupt_character, :incomplete_pairs, :completion
 
   def initialize(input)
-    @input = input
-  end
-
-  def parse
     parsed = []
 
-    @input.chars.each do |bracket|
+    input.chars.each do |bracket|
       if OPENERS.include?(bracket)
         parsed.push bracket
       elsif CLOSERS.include?(bracket)
@@ -28,20 +24,22 @@ class ChunkLine
 
     if parsed.any?
       @incomplete_pairs = parsed
-      @completion = @incomplete_pairs.reverse.map{|bracket| PAIRS[bracket]}
+      @completion = @incomplete_pairs.reverse.map { |bracket| PAIRS[bracket] }
     end
   end
 
   def corrupt?
-    parse
     @corrupt_character != nil
   end
 
   def incomplete?
-    parse
     @incomplete_pairs != nil
   end
 end
+
+chunks = open('chunks.txt').
+    readlines(chomp: true).
+    map { |input| ChunkLine.new(input) }
 
 
 SCORES = {
@@ -51,11 +49,10 @@ SCORES = {
     '>' => 25137
 }
 
-part_1_score = 0
-
-open('chunks.txt').readlines(chomp: true).map {|input| ChunkLine.new(input)}.select(&:corrupt?).each do |chunk_line|
-  part_1_score += SCORES[chunk_line.corrupt_character]
-end
+part_1_score = chunks.
+    select(&:corrupt?).
+    map { |chunk_line| SCORES[chunk_line.corrupt_character] }.
+    sum
 
 puts part_1_score
 
@@ -67,15 +64,9 @@ MULTIPLIERS = {
     '>' => 4
 }
 
-all_scores = []
-
-open('chunks.txt').readlines(chomp: true).map {|input| ChunkLine.new(input)}.select(&:incomplete?).each do |chunk_line|
-  score = 0
-  chunk_line.completion.map {|bracket| MULTIPLIERS[bracket]}.each do |value|
-    score = (score * 5) + value
-  end
-  all_scores << score
-end
+all_scores = chunks.
+    select(&:incomplete?).
+    map { |chunk_line| chunk_line.completion.map { |bracket| MULTIPLIERS[bracket] }.reduce(0) { |acc, value| (acc * 5) + value } }
 
 part_2_score = all_scores.sort[(all_scores.length - 1) / 2]
 
